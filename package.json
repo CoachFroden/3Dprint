@@ -1,0 +1,22 @@
+{
+  "name": "3dprint-control-center",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first 3D printer control center for OctoPrint, Google Drive and webcam monitoring.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "form-data": "^4.0.2",
+    "googleapis": "^148.0.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}
