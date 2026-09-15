@@ -7,6 +7,17 @@
   <title>3Dprint Control Center</title>
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .live-control-grid{display:grid;grid-template-columns:minmax(360px,.82fr) minmax(500px,1.35fr);gap:16px;align-items:stretch}
+    .live-control-grid .motion-card{grid-row:auto;min-height:500px}
+    .control-camera-card{display:flex;flex-direction:column;min-width:0}
+    .control-camera-card .camera-frame{flex:1;min-height:500px}
+    .control-camera-live{display:flex;align-items:center;gap:7px;color:#43e38f;font-size:10px;font-weight:900;letter-spacing:.08em}
+    .control-camera-live i{width:8px;height:8px;border-radius:50%;background:#43e38f;box-shadow:0 0 0 4px rgba(67,227,143,.12)}
+    .control-tools-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:16px}
+    @media(max-width:1180px){.live-control-grid{grid-template-columns:1fr}.live-control-grid .motion-card{min-height:0}.control-camera-card .camera-frame{min-height:52vh}.control-tools-grid{grid-template-columns:1fr 1fr}.control-tools-grid .fan-card{grid-column:1/-1}}
+    @media(max-width:720px){.control-camera-card{order:-1}.control-camera-card .camera-frame{min-height:38vh}.control-tools-grid{grid-template-columns:1fr}.control-tools-grid .fan-card{grid-column:auto}}
+  </style>
 </head>
 <body>
   <div class="noise"></div>
@@ -124,7 +135,7 @@
       </section>
 
       <section class="view" id="view-control">
-        <div class="control-grid">
+        <div class="live-control-grid">
           <article class="card motion-card">
             <div class="card-head"><span>BEVEGELSE</span><div class="segmented" id="jogStep"><button data-step="0.1">0.1</button><button data-step="1">1</button><button data-step="10" class="active">10</button><button data-step="100">100</button></div></div>
             <div class="motion-wrap">
@@ -140,6 +151,16 @@
             <button class="secondary full" data-home="xyz">⌂ Home alle akser</button>
           </article>
 
+          <article class="card control-camera-card">
+            <div class="card-head"><div><span>LIVE KAMERA</span><small>Se bevegelsen mens du flytter X, Y og Z</small></div><div class="control-camera-live"><i></i> DIREKTE</div></div>
+            <div class="camera-frame">
+              <img id="cameraControl" src="/api/camera/stream" alt="Live kamera under manuell styring" onload="this.classList.add('ready');document.getElementById('cameraControlEmpty').style.display='none'" onerror="this.classList.remove('ready');document.getElementById('cameraControlEmpty').style.display=''" />
+              <div class="camera-empty" id="cameraControlEmpty"><span>◉</span><b>Venter på kamera</b><small>Kameraet vises her automatisk når streamen er tilgjengelig.</small></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="control-tools-grid">
           <article class="card temp-control-card">
             <div class="card-head"><span>TEMPERATUR</span></div>
             <div class="temp-control">
