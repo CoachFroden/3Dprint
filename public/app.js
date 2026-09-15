@@ -209,7 +209,7 @@ async function loadDriveFiles() {
     if (!files.length) { body.innerHTML = '<tr><td colspan="4" class="muted-cell">Ingen filer i Drive-mappen.</td></tr>'; return; }
     body.innerHTML = files.map(f => {
       const printable = /\.(gcode|gco|gc)$/i.test(f.name);
-      return `<tr><td><div class="file-name"><span class="file-badge">${fileExt(f.name)}</span><span>${escapeHtml(f.name)}</span></div></td><td>${dateText(f.modifiedTime)}</td><td>${bytes(f.size)}</td><td><button class="file-action" data-drive-download="${f.id}" data-name="${escapeAttr(f.name)}">${printable ? '↓ Klargjør' : '↓ Last ned'}</button></td></tr>`;
+      return `<tr><td><div class="file-name"><span class="file-badge">${fileExt(f.name)}</span><span>${escapeHtml(f.name)}</span></div></td><td>${dateText(f.modifiedTime)}</td><td>${bytes(f.size)}</td><td><button class="file-action" data-drive-download="${f.id}" data-name="${escapeAttr(f.name)}">${printable ? '↓ Klargjør lokalt' : '↓ Last ned'}</button></td></tr>`;
     }).join('');
   } catch (e) { body.innerHTML = `<tr><td colspan="4" class="muted-cell">${escapeHtml(e.message)}</td></tr>`; }
 }
@@ -218,9 +218,9 @@ $('#driveFilesBody').addEventListener('click', async e => {
   const btn = e.target.closest('[data-drive-download]'); if (!btn) return;
   const old = btn.textContent; btn.disabled = true; btn.textContent = 'Laster…';
   try {
-    const result = await api('/api/drive/download', { method:'POST', body:{ id:btn.dataset.driveDownload, sendToOctoprint:true } });
-    toast(result.file.printable ? `${result.file.name} er lastet ned og klar i OctoPrint` : `${result.file.name} er lastet ned lokalt`);
-    await loadLocalFiles(); await refreshStatus(true);
+    const result = await api('/api/drive/download', { method:'POST', body:{ id:btn.dataset.driveDownload, sendToOctoprint:false } });
+    toast(`${result.file.name} er lastet ned til printer-PC-en`);
+    await loadLocalFiles();
   } catch (err) { toast(err.message, true); }
   finally { btn.disabled = false; btn.textContent = old; }
 });
