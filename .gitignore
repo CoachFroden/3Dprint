@@ -1,0 +1,10 @@
+node_modules/
+.env
+data/config.json
+data/google-token.json
+data/downloads/*
+data/tmp/*
+!data/downloads/.gitkeep
+!data/tmp/.gitkeep
+.DS_Store
+npm-debug.log*
