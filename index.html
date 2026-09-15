@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#070a0f" />
+  <title>3Dprint Control Center</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+  <style>
+    .demo-badge{position:fixed;right:22px;top:18px;z-index:99;padding:8px 12px;border-radius:999px;background:rgba(255,184,77,.12);border:1px solid rgba(255,184,77,.35);color:#ffc86f;font-size:11px;font-weight:900;letter-spacing:.12em;backdrop-filter:blur(18px)}
+    .demo-note{margin:0 0 18px;padding:12px 14px;border:1px solid rgba(87,230,255,.16);background:rgba(87,230,255,.045);border-radius:14px;color:#91a7b9;font-size:12px}.demo-note b{color:#dffbff}.camera-demo{background:radial-gradient(circle at 50% 35%,rgba(87,230,255,.12),transparent 32%),linear-gradient(160deg,#071017,#0a1118 52%,#040608);position:absolute;inset:0;display:grid;place-items:center}.camera-demo:before{content:"CR-10S PRO";font-size:32px;font-weight:900;letter-spacing:.08em;color:#223647;text-shadow:0 0 30px rgba(87,230,255,.12)}
+    .camera-demo:after{content:"LIVE CAMERA PREVIEW";position:absolute;bottom:22px;font-size:10px;letter-spacing:.18em;color:#577183}
+    .view{animation:fade .18s ease}@keyframes fade{from{opacity:.45;transform:translateY(3px)}to{opacity:1;transform:none}}
+    .fake-switch{display:flex;gap:8px;align-items:center;color:#9aabba;font-size:11px}.fake-switch i{width:9px;height:9px;border-radius:50%;background:#43e38f;box-shadow:0 0 0 4px rgba(67,227,143,.12)}
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+  <div class="demo-badge">DEMO</div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">3D</div><div><strong>PRINT</strong><span>CONTROL CENTER</span></div></div>
+      <nav>
+        <button class="nav-btn active" data-view="dashboard"><span>◫</span> Oversikt</button>
+        <button class="nav-btn" data-view="files"><span>▤</span> Filer</button>
+        <button class="nav-btn" data-view="control"><span>✣</span> Kontroll</button>
+        <button class="nav-btn" data-view="camera"><span>◉</span> Kamera</button>
+        <button class="nav-btn" data-view="terminal"><span>›_</span> Terminal</button>
+        <button class="nav-btn" data-view="settings"><span>⚙</span> Innstillinger</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="status-pill online"><i></i><span>Demo-tilkobling aktiv</span></div>
+        <small>CR-10S Pro · OctoPrint bridge</small>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div><p class="eyebrow" id="pageEyebrow">CR-10S PRO</p><h1 id="pageTitle">Oversikt</h1></div>
+        <div class="top-actions"><button class="ghost" id="refreshBtn">↻ Oppdater</button><button class="danger-soft" id="emergencyBtn">NØDSTOPP</button></div>
+      </header>
+      <div class="demo-note"><b>Dette er visningsmodus.</b> Den ekte printeren kobles til senere via OctoPrint-agenten på PC-en ved printeren. Design og arbeidsflyt kan du teste allerede nå.</div>
+      <div id="toast" class="toast" role="status"></div>
+
+      <section class="view active" id="view-dashboard">
+        <div class="hero-grid">
+          <article class="card job-card">
+            <div class="card-head"><span>AKTIV JOBB</span><b id="printerState">Printing</b></div>
+            <div class="job-main">
+              <div class="progress-ring" id="progressRing" style="--p:68"><div><strong id="progressText">68%</strong><span>ferdig</span></div></div>
+              <div class="job-copy">
+                <h2 id="jobName">koppholder_adapter.gcode</h2><p id="jobMeta">Kilde: Google Drive · lokal kopi klar</p>
+                <div class="metric-row"><div><span>Brukt</span><strong>1t 12m</strong></div><div><span>Gjenstår</span><strong>34 min</strong></div></div>
+                <div class="job-actions"><button class="primary demo-action" data-msg="Print startet i demo">▶ Start</button><button class="secondary demo-action" data-msg="Print pauset i demo">Ⅱ Pause</button><button class="danger demo-action" data-msg="Print avbrutt i demo">■ Avbryt</button></div>
+              </div>
+            </div>
+          </article>
+          <article class="card camera-card">
+            <div class="card-head"><span>LIVE KAMERA</span><button class="icon-btn" data-view-jump="camera">⛶</button></div>
+            <div class="camera-frame compact"><div class="camera-demo"></div></div>
+          </article>
+        </div>
+
+        <div class="stat-grid">
+          <article class="card temp-card hot"><span>DYSE</span><strong><i>207</i>°</strong><small>Mål <b>210</b>°C</small><div class="mini-line"></div></article>
+          <article class="card temp-card bed"><span>BYGGEPLATE</span><strong><i>59</i>°</strong><small>Mål <b>60</b>°C</small><div class="mini-line"></div></article>
+          <article class="card status-card"><span>TILKOBLING</span><strong>OPERATIONAL</strong><small>COM4 · 115200</small></article>
+          <article class="card status-card"><span>FIL</span><strong>koppholder_adapter</strong><small>18.4 MB</small></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="card quick-card"><div class="card-head"><span>HURTIGKONTROLL</span></div><div class="quick-buttons"><button class="demo-action" data-msg="Home alle akser">⌂ Home alle</button><button data-view-jump="control">✣ Flytt akser</button><button class="demo-action" data-msg="PLA-forvarming satt">PLA 210/60</button><button class="demo-action" data-msg="PETG-forvarming satt">PETG 240/80</button><button class="demo-action" data-msg="Kjøler ned">❄ Kjøl ned</button><button data-view-jump="files">▤ Velg fil</button></div></article>
+          <article class="card recent-card"><div class="card-head"><span>SISTE LOKALE FILER</span><button class="link-btn" data-view-jump="files">Se alle</button></div><div class="file-list mini"><div class="file-row-mini"><span>koppholder_adapter.gcode</span><span>18.4 MB</span></div><div class="file-row-mini"><span>knivgravering_test.gcode</span><span>7.2 MB</span></div><div class="file-row-mini"><span>esp32_holder.gcode</span><span>11.8 MB</span></div></div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-files">
+        <div class="section-grid files-layout">
+          <article class="card file-browser">
+            <div class="card-head files-head"><div><span>GOOGLE DRIVE</span><small>Tilkoblet · 3D-print/Klar til print</small></div><div class="inline-actions"><button class="ghost small demo-action" data-msg="Drive er allerede tilkoblet i demo">Drive tilkoblet ✓</button><button class="ghost small demo-action" data-msg="Fillisten er oppdatert">↻</button></div></div>
+            <div class="drop-zone demo-action" data-msg="I ferdig app kan du slippe G-code her"><b>Dra inn en G-code-fil</b><span>eller velg en fil direkte fra Google Drive</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Fil</th><th>Endret</th><th>Størrelse</th><th></th></tr></thead><tbody>
+              <tr><td><div class="file-name"><span class="file-badge">GCODE</span><span>koppholder_adapter.gcode</span></div></td><td>I dag 09:18</td><td>18.4 MB</td><td><button class="file-action demo-action" data-msg="Filen lastes ned lokalt før printing">↓ Klargjør</button></td></tr>
+              <tr><td><div class="file-name"><span class="file-badge">GCODE</span><span>esp32_holder.gcode</span></div></td><td>I går 22:41</td><td>11.8 MB</td><td><button class="file-action demo-action" data-msg="Filen lastes ned lokalt før printing">↓ Klargjør</button></td></tr>
+              <tr><td><div class="file-name"><span class="file-badge">3MF</span><span>brusboks_adapter.3mf</span></div></td><td>I går 21:55</td><td>3.1 MB</td><td><button class="file-action demo-action" data-msg="3MF lastes ned lokalt">↓ Last ned</button></td></tr>
+            </tbody></table></div>
+          </article>
+          <article class="card local-browser"><div class="card-head"><div><span>LOKALT PÅ PRINTSERVER</span><small>Filen er trygg selv om nettet faller ut</small></div></div><div class="local-files">
+            <div class="local-item"><div class="local-item-head"><div><strong>koppholder_adapter.gcode</strong><small>I dag 09:19 · 18.4 MB</small></div><span class="file-badge">GCODE</span></div><div class="local-item-actions"><button class="file-action demo-action" data-msg="Sendt til OctoPrint">Send til OctoPrint</button><button class="file-action demo-action" data-msg="Print startet i demo">Start print</button></div></div>
+            <div class="local-item"><div class="local-item-head"><div><strong>esp32_holder.gcode</strong><small>I går 22:43 · 11.8 MB</small></div><span class="file-badge">GCODE</span></div><div class="local-item-actions"><button class="file-action demo-action" data-msg="Sendt til OctoPrint">Send til OctoPrint</button><button class="file-action demo-action" data-msg="Print startet i demo">Start print</button></div></div>
+          </div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-control">
+        <div class="control-grid">
+          <article class="card motion-card"><div class="card-head"><span>BEVEGELSE</span><div class="segmented"><button>0.1</button><button>1</button><button class="active">10</button><button>100</button></div></div><div class="motion-wrap"><div class="xy-pad"><button class="demo-action" data-msg="Y +10 mm">Y+</button><button class="demo-action" data-msg="X -10 mm">X−</button><button class="home-round demo-action" data-msg="Home XY">⌂</button><button class="demo-action" data-msg="X +10 mm">X+</button><button class="demo-action" data-msg="Y -10 mm">Y−</button></div><div class="z-pad"><button class="demo-action" data-msg="Z +10 mm">Z+</button><div class="z-line"></div><button class="demo-action" data-msg="Z -10 mm">Z−</button><button class="ghost small demo-action" data-msg="Home Z">Home Z</button></div></div><button class="secondary full demo-action" data-msg="Home alle akser">⌂ Home alle akser</button></article>
+          <article class="card temp-control-card"><div class="card-head"><span>TEMPERATUR</span></div><div class="temp-control"><label>Dyse <span><b>207</b>°C</span></label><div class="input-action"><input type="number" value="210"><button class="demo-action" data-msg="Dysetemperatur oppdatert">Sett</button></div><label>Byggeplate <span><b>59</b>°C</span></label><div class="input-action"><input type="number" value="60"><button class="demo-action" data-msg="Bed-temperatur oppdatert">Sett</button></div><div class="preset-grid"><button class="demo-action" data-msg="PLA-forvarming satt">PLA</button><button class="demo-action" data-msg="PETG-forvarming satt">PETG</button><button class="demo-action" data-msg="Kjøler ned">Kjøl ned</button></div></div></article>
+          <article class="card extrusion-card"><div class="card-head"><span>EKSTRUDER</span></div><div class="extrude-row"><button class="demo-action" data-msg="Retract 10 mm">−10 mm</button><button class="demo-action" data-msg="Retract 1 mm">−1 mm</button><button class="demo-action" data-msg="Ekstruder 1 mm">+1 mm</button><button class="demo-action" data-msg="Ekstruder 10 mm">+10 mm</button></div><p class="hint">Varm dysen før du ekstruderer filament.</p></article>
+          <article class="card fan-card"><div class="card-head"><span>DELEVIFTE</span><strong id="fanValue">50%</strong></div><input id="fanSlider" type="range" min="0" max="100" value="50"><div class="fan-presets"><button data-fan="0">Av</button><button data-fan="50">50%</button><button data-fan="100">100%</button></div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-camera">
+        <article class="card camera-page-card"><div class="card-head"><div><span>LIVE KAMERA</span><small>Kameraet vises her når det kobles til printer-PC-en</small></div><div class="fake-switch"><i></i> Kamera-klargjort</div></div><div class="camera-frame large"><div class="camera-demo"></div></div></article>
+      </section>
+
+      <section class="view" id="view-terminal">
+        <article class="card terminal-card"><div class="card-head"><div><span>G-CODE TERMINAL</span><small>Send manuelle kommandoer via OctoPrint</small></div><button class="ghost small" id="clearTerminal">Tøm</button></div><div id="terminalOutput" class="terminal-output"><div class="terminal-line dim">3Dprint terminal klar.</div><div class="terminal-line">&gt; M105</div><div class="terminal-line">ok T:207.1 /210.0 B:59.4 /60.0</div></div><form id="terminalForm" class="terminal-input"><span>&gt;</span><input id="terminalCommand" autocomplete="off" placeholder="Skriv G-code og trykk Enter"><button>Send</button></form><p class="warning-text">I live-modus sendes kommandoen til OctoPrint på printer-PC-en.</p></article>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="settings-grid">
+          <article class="card settings-card"><div class="card-head"><div><span>PRINTER-BRO</span><small>Lokal agent på PC-en ved printeren</small></div></div><label>Agent-status<input value="Ikke installert ennå" disabled></label><label>OctoPrint<input value="Kobles opp senere på printer-PC-en" disabled></label><label>Kamera<input value="Klar for USB-kamera / OctoPrint stream" disabled></label></article>
+          <article class="card settings-card"><div class="card-head"><div><span>GOOGLE DRIVE</span><small>Skyfilene dine blir hentet før print</small></div></div><label>Mappe<input value="3D-print / Klar til print"></label><label>Synkronisering<input value="Last ned lokalt før printing"></label><p class="hint">I live-versjonen kobles dette til med Google-innlogging.</p></article>
+        </div><div class="settings-actions"><button class="primary demo-action" data-msg="Innstillingene er lagret i demo">Lagre innstillinger</button><button class="ghost demo-action" data-msg="Testen vil kjøres mot lokal agent i live-versjonen">Test tilkobling</button></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const titles={dashboard:['CR-10S PRO','Oversikt'],files:['FILBIBLIOTEK','Filer'],control:['MANUELL STYRING','Kontroll'],camera:['OVERVÅKING','Kamera'],terminal:['AVANSERT','Terminal'],settings:['SYSTEM','Innstillinger']};
+    const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
+    function toast(msg){const el=$('#toast');el.textContent=msg;el.className='toast show';clearTimeout(window._t);window._t=setTimeout(()=>el.className='toast',2200)}
+    function nav(view){$$('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+view));$('#pageEyebrow').textContent=titles[view][0];$('#pageTitle').textContent=titles[view][1]}
+    $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>nav(b.dataset.view)));$$('[data-view-jump]').forEach(b=>b.addEventListener('click',()=>nav(b.dataset.viewJump)));$$('.demo-action').forEach(b=>b.addEventListener('click',()=>toast(b.dataset.msg||'Demo')));
+    $('#refreshBtn').addEventListener('click',()=>toast('Status oppdatert'));
+    $('#emergencyBtn').addEventListener('click',()=>toast('Nødstopp er deaktivert i demo'));
+    $('#fanSlider').addEventListener('input',e=>$('#fanValue').textContent=e.target.value+'%');$$('[data-fan]').forEach(b=>b.addEventListener('click',()=>{$('#fanSlider').value=b.dataset.fan;$('#fanValue').textContent=b.dataset.fan+'%';toast('Vifte '+b.dataset.fan+'%')}));
+    $('#terminalForm').addEventListener('submit',e=>{e.preventDefault();const input=$('#terminalCommand');const cmd=input.value.trim();if(!cmd)return;$('#terminalOutput').insertAdjacentHTML('beforeend','<div class="terminal-line">&gt; '+cmd.replace(/[<>]/g,'')+'</div><div class="terminal-line dim">Demo: kommando mottatt</div>');input.value='';$('#terminalOutput').scrollTop=$('#terminalOutput').scrollHeight});
+    $('#clearTerminal').addEventListener('click',()=>$('#terminalOutput').innerHTML='<div class="terminal-line dim">Terminal tømt.</div>');
+  </script>
+</body>
+</html>
