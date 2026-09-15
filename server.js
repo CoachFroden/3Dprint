@@ -17,10 +17,14 @@ const app = express();
 
 const DATA_DIR = path.join(__dirname, 'data');
 const DOWNLOAD_DIR = path.join(DATA_DIR, 'downloads');
+const TMP_DIR = path.join(DATA_DIR, 'tmp');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 const TOKEN_FILE = path.join(DATA_DIR, 'google-token.json');
 
-await fsp.mkdir(DOWNLOAD_DIR, { recursive: true });
+await Promise.all([
+  fsp.mkdir(DOWNLOAD_DIR, { recursive: true }),
+  fsp.mkdir(TMP_DIR, { recursive: true })
+]);
 
 const defaults = {
   port: Number(process.env.PORT || 3030),
@@ -111,9 +115,7 @@ async function oauthClient() {
 async function driveClient() {
   const auth = await oauthClient();
   const creds = auth.credentials;
-  if (!creds?.refresh_token && !creds?.access_token) {
-    throw new Error('Google Drive er ikke koblet til ennå.');
-  }
+  if (!creds?.refresh_token && !creds?.access_token) throw new Error('Google Drive er ikke koblet til ennå.');
   return google.drive({ version: 'v3', auth });
 }
 
@@ -121,10 +123,7 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const upload = multer({
-  dest: path.join(DATA_DIR, 'tmp'),
-  limits: { fileSize: 1024 * 1024 * 1024 }
-});
+const upload = multer({ dest: TMP_DIR, limits: { fileSize: 1024 * 1024 * 1024 } });
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, name: '3Dprint Control Center' }));
 
@@ -140,7 +139,6 @@ app.get('/api/config', async (_req, res) => {
 app.post('/api/config', async (req, res) => {
   try {
     const allowed = ['octoprintUrl', 'octoprintApiKey', 'cameraUrl', 'driveFolderId', 'googleClientId', 'googleClientSecret', 'googleRedirectUri'];
-    const current = await getConfig();
     const patch = {};
     for (const key of allowed) {
       if (!(key in req.body)) continue;
@@ -148,7 +146,7 @@ app.post('/api/config', async (req, res) => {
       if ((key === 'octoprintApiKey' || key === 'googleClientSecret') && value === '••••••••') continue;
       patch[key] = value;
     }
-    const next = await saveConfig({ ...current, ...patch });
+    const next = await saveConfig(patch);
     res.json({ ok: true, config: { ...next, octoprintApiKey: next.octoprintApiKey ? '••••••••' : '', googleClientSecret: next.googleClientSecret ? '••••••••' : '' } });
   } catch (error) {
     apiError(res, error);
@@ -158,12 +156,17 @@ app.post('/api/config', async (req, res) => {
 app.get('/api/octoprint/status', async (_req, res) => {
   try {
     const client = await octoClient();
-    const [printer, job, connection] = await Promise.all([
+    const [printerResult, jobResult, connectionResult] = await Promise.allSettled([
       client.get('/api/printer'),
       client.get('/api/job'),
       client.get('/api/connection')
     ]);
-    res.json({ printer: printer.data, job: job.data, connection: connection.data });
+
+    if (connectionResult.status === 'rejected') throw connectionResult.reason;
+    const printer = printerResult.status === 'fulfilled' ? printerResult.value.data : { state: { text: 'Offline' }, temperature: {} };
+    const job = jobResult.status === 'fulfilled' ? jobResult.value.data : { state: 'Offline', job: {}, progress: {} };
+    const connection = connectionResult.value.data;
+    res.json({ printer, job, connection });
   } catch (error) {
     apiError(res, error, 'Får ikke kontakt med OctoPrint');
   }
@@ -199,7 +202,8 @@ app.post('/api/octoprint/print', async (req, res) => {
     const filePath = String(req.body.path || '');
     if (!filePath) return res.status(400).json({ error: 'Mangler filsti' });
     const client = await octoClient();
-    await client.post(`/api/files/local/${filePath.split('/').map(encodeURIComponent).join('/')}`, { command: 'select', print: true });
+    const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+    await client.post(`/api/files/local/${encodedPath}`, { command: 'select', print: true });
     res.json({ ok: true });
   } catch (error) {
     apiError(res, error);
@@ -336,8 +340,10 @@ app.get('/api/drive/auth/url', async (_req, res) => {
 
 app.get('/oauth2callback', async (req, res) => {
   try {
+    const code = String(req.query.code || '');
+    if (!code) throw new Error('Google returnerte ingen autorisasjonskode.');
     const auth = await oauthClient();
-    const { tokens } = await auth.getToken(String(req.query.code || ''));
+    const { tokens } = await auth.getToken(code);
     await fsp.writeFile(TOKEN_FILE, JSON.stringify(tokens, null, 2));
     res.send(`<!doctype html><html><body style="font-family:system-ui;background:#0b0f14;color:#fff;padding:40px"><h1>Google Drive er koblet til ✓</h1><p>Du kan lukke denne fanen og gå tilbake til 3Dprint.</p><script>setTimeout(()=>window.close(),1800)</script></body></html>`);
   } catch (error) {
@@ -384,7 +390,7 @@ app.post('/api/drive/download', async (req, res) => {
       octoprint = await uploadToOctoPrint(localPath, { select: true, print: false });
     }
     const stat = await fsp.stat(localPath);
-    res.json({ ok: true, file: { name, size: stat.size, localPath, printable }, octoprint });
+    res.json({ ok: true, file: { name, size: stat.size, printable }, octoprint });
   } catch (error) {
     apiError(res, error);
   }
@@ -393,7 +399,7 @@ app.post('/api/drive/download', async (req, res) => {
 app.get('/api/local/files', async (_req, res) => {
   try {
     const names = await fsp.readdir(DOWNLOAD_DIR);
-    const files = await Promise.all(names.map(async (name) => {
+    const files = await Promise.all(names.filter(name => name !== '.gitkeep').map(async (name) => {
       const stat = await fsp.stat(path.join(DOWNLOAD_DIR, name));
       return { name, size: stat.size, modifiedTime: stat.mtime.toISOString(), printable: /\.(gcode|gco|gc)$/i.test(name) };
     }));
@@ -409,6 +415,7 @@ app.post('/api/local/upload', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Ingen fil mottatt' });
     const name = safeName(req.file.originalname);
     const target = path.join(DOWNLOAD_DIR, name);
+    await fsp.rm(target, { force: true });
     await fsp.rename(req.file.path, target);
     let octoprint = null;
     if (/\.(gcode|gco|gc)$/i.test(name)) octoprint = await uploadToOctoPrint(target, { select: true, print: false });
@@ -447,12 +454,12 @@ app.get('/api/camera/stream', async (_req, res) => {
     const response = await axios.get(url, { responseType: 'stream', timeout: 0 });
     res.status(response.status);
     for (const [key, value] of Object.entries(response.headers)) {
-      if (['content-type', 'cache-control', 'pragma'].includes(key.toLowerCase())) res.setHeader(key, value);
+      if (['content-type', 'cache-control', 'pragma'].includes(key.toLowerCase()) && value) res.setHeader(key, value);
     }
     response.data.on('error', () => res.end());
     response.data.pipe(res);
-  } catch (error) {
-    res.status(503).json({ error: 'Kamera er ikke tilgjengelig ennå.' });
+  } catch {
+    if (!res.headersSent) res.status(503).json({ error: 'Kamera er ikke tilgjengelig ennå.' });
   }
 });
 
@@ -469,7 +476,7 @@ app.get('/api/camera/snapshot', async (_req, res) => {
   }
 });
 
-app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/{*splat}', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const cfg = await getConfig();
 app.listen(cfg.port, '0.0.0.0', () => {
