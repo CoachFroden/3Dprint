@@ -1,0 +1,10 @@
+{
+  "name": "3Dprint Control Center",
+  "short_name": "3Dprint",
+  "description": "Local control center for OctoPrint and CR-10S Pro",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070a0f",
+  "theme_color": "#070a0f",
+  "icons": []
+}
