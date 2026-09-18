@@ -1,5 +1,5 @@
-const CACHE = '3dprint-shell-v1';
-const STATIC = ['/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest'];
+const CACHE = '3dprint-shell-v2';
+const STATIC = ['/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest', '/apple-touch-icon.png'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC))));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))));
 self.addEventListener('fetch', e => {
