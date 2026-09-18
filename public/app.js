@@ -120,8 +120,8 @@ $('#pauseJobBtn').addEventListener('click', async (e) => {
     toast(action === 'pause' ? 'Print pauset' : 'Print fortsetter'); refreshStatus(true);
   } catch (err) { toast(err.message, true); }
 });
-$('#cancelJobBtn').addEventListener('click', () => confirmAction('Avbryt print?', 'Den aktive jobben stoppes. Dette kan ikke angres.', async () => {
-  await api('/api/octoprint/job', { method: 'POST', body: { command: 'cancel' } }); toast('Print avbrutt'); refreshStatus(true);
+$('#cancelJobBtn').addEventListener('click', () => confirmAction('Avbryt print?', 'Jobben stoppes med en gang, temperaturventing brytes og varme slås av.', async () => {
+  await api('/api/octoprint/job', { method: 'POST', body: { command: 'cancel' } }); toast('Print avbrutt · varme slått av'); refreshStatus(true);
 }));
 $('#emergencyBtn').addEventListener('click', () => confirmAction('NØDSTOPP?', 'Dette sender M112 til printeren. Bruk kun ved en reell nødsituasjon.', async () => {
   await api('/api/octoprint/emergency-stop', { method: 'POST' }); toast('Nødstopp sendt');

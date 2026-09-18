@@ -187,9 +187,30 @@ app.post('/api/octoprint/job', async (req, res) => {
     const { command, action } = req.body;
     const allowed = new Set(['start', 'pause', 'cancel', 'restart']);
     if (!allowed.has(command)) return res.status(400).json({ error: 'Ugyldig jobbkommando' });
+
+    const client = await octoClient();
+
+    if (command === 'cancel') {
+      // M108 bryter venting i M109/M190 på Marlin med emergency parser,
+      // slik at en avbrutt jobb ikke må vente på at temperaturmålet nås.
+      // Varme slås også av med en gang. Feil her skal ikke hindre selve cancel.
+      await client.post('/api/printer/command', {
+        commands: ['M108', 'M104 S0', 'M140 S0']
+      }).catch(() => {});
+
+      await client.post('/api/job', { command: 'cancel' });
+
+      // Send temperatur av én gang til etter cancel, i tilfelle OctoPrints
+      // cancel-sekvens eller køen rakk å overstyre første kommando.
+      await client.post('/api/printer/command', {
+        commands: ['M104 S0', 'M140 S0']
+      }).catch(() => {});
+
+      return res.json({ ok: true, immediate: true, heatersOff: true });
+    }
+
     const body = { command };
     if (command === 'pause' && action) body.action = action;
-    const client = await octoClient();
     await client.post('/api/job', body);
     res.json({ ok: true });
   } catch (error) {
