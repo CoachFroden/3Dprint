@@ -55,6 +55,11 @@ function bytes(n) {
   if (value < 1024 ** 3) return `${(value / 1024 ** 2).toFixed(1)} MB`;
   return `${(value / 1024 ** 3).toFixed(1)} GB`;
 }
+function finishTime(secondsLeft) {
+  const seconds = Number(secondsLeft);
+  if (!Number.isFinite(seconds) || seconds < 0) return '—';
+  return new Intl.DateTimeFormat('no-NO', { hour: '2-digit', minute: '2-digit' }).format(new Date(Date.now() + seconds * 1000));
+}
 function dateText(value) {
   if (!value) return '—';
   try { return new Intl.DateTimeFormat('no-NO', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)); }
@@ -85,9 +90,17 @@ function renderStatus(data) {
   $('#progressRing').style.setProperty('--p', progress);
   $('#progressText').textContent = `${Math.round(progress)}%`;
   $('#jobName').textContent = job.job?.file?.display || job.job?.file?.name || 'Ingen jobb valgt';
-  $('#jobMeta').textContent = job.job?.file?.origin ? `Kilde: ${job.job.file.origin}` : 'Velg en G-code-fil for å starte.';
+  const estimatedTotal = Number(job.job?.estimatedPrintTime);
+  const left = Number(job.progress?.printTimeLeft);
+  const estimateOrigin = job.progress?.printTimeLeftOrigin;
+  const meta = [];
+  if (job.job?.file?.origin) meta.push(`Kilde: ${job.job.file.origin}`);
+  if (Number.isFinite(estimatedTotal)) meta.push(`Filestimat: ${formatTime(estimatedTotal)}`);
+  if (Number.isFinite(left)) meta.push(`Ferdig ca. ${finishTime(left)}`);
+  if (estimateOrigin) meta.push(`beregning: ${estimateOrigin}`);
+  $('#jobMeta').textContent = meta.length ? meta.join(' · ') : 'Velg en G-code-fil for å starte.';
   $('#timeUsed').textContent = formatTime(job.progress?.printTime);
-  $('#timeLeft').textContent = formatTime(job.progress?.printTimeLeft);
+  $('#timeLeft').textContent = formatTime(left);
   $('#printerState').textContent = job.state || printer.state?.text || 'Ukjent';
 
   const tool = printer.temperature?.tool0 || {};
